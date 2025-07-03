@@ -21,7 +21,7 @@ Built by a researcher, for researchers, FIRE delivers:
 
 ### 🏦 Multi-Source Regulatory Support
 
-- - **SEC EDGAR Integration**: Direct API access to SEC filings with automatic company lookup
+-  **SEC EDGAR Integration**: Direct API access to SEC filings with automatic company lookup
 - **FFIEC Call Reports**: Complete support for all schedules with MDRM code resolution
 - **Multiple Format Handling**: Seamlessly process HTML, XBRL, PDF, and SDF formats
 - **Smart PDF Processing**: Advanced detection and splitting of collapsed multi-code cells
