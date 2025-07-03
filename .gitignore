@@ -1,0 +1,138 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Logs - Keep folder structure but not log files
+logs/*.log
+logs/*.txt
+!logs/.gitkeep
+
+# Test outputs and temporary files
+*.xlsx
+*.csv
+*.json
+FIRE_*_output/
+*_formatted.xlsx
+*_basic.xlsx
+*_financial_*.json
+*_fire_extraction_*.log
+
+# IMPORTANT: Keep the dictionaries folder and its contents
+!dictionaries/
+!dictionaries/call_report_codes.json
+!dictionaries/MDRM_Parser/
+!dictionaries/MDRM_Parser/MDRM_Parser.py
+
+# Input documents (don't share source documents)
+*.pdf
+*.PDF
+*.xbrl
+*.XBRL
+*.sdf
+*.SDF
+*.htm
+*.html
+*.xml
+*.XML
+
+# Configuration and credentials
+config.ini
+credentials.json
+.env
+secrets.py
+config.py
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.cache
+~$*
+.~*
+
+# Test files and data
+test_*.py
+test_data/
+tests/
+Capital_One_*.pdf
+COF_*.pdf
+*_Call_Report.pdf
+*_Call_Report_*.xlsx
+sample_*.htm
+sample_*.pdf
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Coverage and testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# Documentation build files
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# Package distribution
+dist/
+build/
+*.egg-info/
+
+# Example outputs (if you want to include examples later)
+!examples/
+!examples/*.xlsx
+!examples/*.csv
+!examples/*.json
+!examples/*.pdf
+!examples/README.md
