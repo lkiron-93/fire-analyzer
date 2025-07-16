@@ -45,8 +45,10 @@ def setup_logging(company_name=None, log_level=logging.DEBUG):
     file_handler = RotatingFileHandler(
         log_filepath,
         maxBytes=10*1024*1024,  # 10MB
-        backupCount=5
+        backupCount=5,
+        encoding='utf-8'
     )
+
     file_handler.setLevel(log_level)
     file_handler.setFormatter(formatter)
     
@@ -200,7 +202,7 @@ class SECEdgarAPI:
     def __init__(self, logger=None):
         self.session = requests.Session()
         self.session.headers.update({
-            'User-Agent': 'FIRE Analyzer johnsmith@gmail.com',#Update Email here
+            'User-Agent': 'FIRE Analyzer lukewkiron@gmail.com',
             'Accept-Encoding': 'gzip, deflate',
             'Accept': 'application/json'
         })
@@ -388,6 +390,12 @@ class EnhancedFIREScraper:
         
         # Initialize collapsed cell counter
         self.collapsed_cell_count = 0
+        
+        # Add RC Balance Sheet tracking (ADD THESE TWO LINES)
+        self.rc_balance_sheet_active = False
+        self.rc_balance_sheet_name = ""
+
+
         
     def set_company(self, ticker=None, name=None, cik=None):
         """Set company information"""
@@ -1057,6 +1065,7 @@ class EnhancedFIREScraper:
             self.logger.error(f"✗ Error extracting XBRL data: {str(e)}")
             return False
         
+    #STARTTTTT
     def extract_pdf_tables(self):
         """Extract financial data from Call Report PDF files with schedule preservation"""
         try:
@@ -1078,83 +1087,213 @@ class EnhancedFIREScraper:
                     page_text = page.extract_text()
                     
                     # Enhanced pattern to capture all schedule types including Parts
-                    schedule_match = re.search(
-                        r'^Schedule\s+(RC|RI)(?:-([A-Z]))?(?:\s+(Part\s+[IVX]+))?\s*[-–]?\s*(.+?)(?:\s*\(Form Type[^)]+\))?',
-                        page_text, 
+                    # First try a specific pattern for RC Balance Sheet
+                    rc_balance_match = re.search(
+                        r'^Schedule\s+RC\s*[-–]?\s*(?:Consolidated\s+)?Balance\s+Sheet',
+                        page_text,
                         re.MULTILINE | re.IGNORECASE
                     )
-                    
-                    if schedule_match:
-                        base_schedule = schedule_match.group(1).upper()  # RC or RI
-                        sub_letter = schedule_match.group(2).upper() if schedule_match.group(2) else ""
-                        part_info = schedule_match.group(3) if schedule_match.group(3) else ""
-                        title_text = schedule_match.group(4).strip() if schedule_match.group(4) else ""
-                        
-                        # Construct schedule code including Part info
-                        if sub_letter and part_info:
-                            schedule_code = f"{base_schedule}-{sub_letter} {part_info}"
-                        elif sub_letter:
-                            schedule_code = f"{base_schedule}-{sub_letter}"
-                        else:
-                            schedule_code = base_schedule
-                            
-                        # Clean up the title
-                        schedule_title = ' '.join(title_text.split())
-                        
-                        self.logger.info(f"✓ Detected Schedule: {schedule_code} - {schedule_title}")
 
-                        # ADD THE DEBUG CODE HERE:
-                        if schedule_code == "RC":
-                            self.logger.debug(f"  DEBUG: RC schedule title contains 'balance sheet'? {'balance sheet' in schedule_title.lower()}")
-                        
+                    if rc_balance_match:
                         # Save previous schedule if exists
                         if current_schedule and current_schedule_data:
-                            all_schedules[current_schedule] = {
-                                'name': f"Schedule {current_schedule}",
-                                'title': current_schedule_name,  # Store full title
-                                'data': current_schedule_data
-                            }
-                            self.logger.info(f"  ✓ Saved Schedule {current_schedule} with {len(current_schedule_data)} rows")
+                            # Don't save empty RC schedule if we're in RC Balance Sheet mode
+                            if not (current_schedule == "RC" and self.rc_balance_sheet_active and len(current_schedule_data) == 0):
+                                all_schedules[current_schedule] = {
+                                    'name': f"Schedule {current_schedule}",
+                                    'title': current_schedule_name,
+                                    'data': current_schedule_data
+                                }
+                                self.logger.info(f"  ✓ Saved Schedule {current_schedule} with {len(current_schedule_data)} rows")
+                        
+                        # Handle RC Balance Sheet specifically
+                        base_schedule = 'RC'
+                        sub_letter = ''
+                        part_info = ''
+                        schedule_code = 'RC'
+                        schedule_title = 'Consolidated Balance Sheet'
 
-                            # DEBUG LINES LOGGING 7-3-2025
-                            self.logger.debug(f"DEBUG: Full schedule detection - Code: {schedule_code}, Title: {schedule_title}")
-                            self.logger.debug(f"DEBUG: Is this RC Balance Sheet? {schedule_code == 'RC' and 'balance sheet' in schedule_title.lower()}")
+                        # Set the RC Balance Sheet flag
+                        self.rc_balance_sheet_active = True
+                        self.rc_balance_sheet_name = schedule_title
+                        
+                        self.logger.info(f"✓ Detected Schedule: {schedule_code} - {schedule_title}")
+                        self.logger.info("🎯 RC BALANCE SHEET MODE ACTIVATED - Will apply special processing to tables")
+                        self.logger.info(f"📍 Activated on page {page_num + 1}")
                         
                         # Start new schedule
                         current_schedule = schedule_code
-                        current_schedule_name = schedule_title  # Store the full title
+                        current_schedule_name = schedule_title
                         current_schedule_data = []
-                    
+                        
+                    else:
+                        # Try general pattern for other schedules
+                        schedule_match = re.search(
+                            r'^Schedule\s+(RC|RI)(?:-([A-Z]))?(?:\s+(Part\s+[IVX]+))?\s*[-–]?\s*(.+?)(?:\s*\(Form Type[^)]+\))?$',
+                            page_text, 
+                            re.MULTILINE | re.IGNORECASE
+                        )
+                        
+                        if schedule_match:
+                            # Parse the new schedule FIRST
+                            base_schedule = schedule_match.group(1).upper()
+                            sub_letter = schedule_match.group(2).upper() if schedule_match.group(2) else ""
+                            part_info = schedule_match.group(3) if schedule_match.group(3) else ""
+                            title_text = schedule_match.group(4).strip() if schedule_match.group(4) else ""
+
+                            # Construct schedule code
+                            if sub_letter and part_info:
+                                schedule_code = f"{base_schedule}-{sub_letter} {part_info}"
+                            elif sub_letter:
+                                schedule_code = f"{base_schedule}-{sub_letter}"
+                            else:
+                                schedule_code = base_schedule
+                            
+                            schedule_title = ' '.join(title_text.split())
+                            
+                            # Check if we need to deactivate RC Balance Sheet mode
+                            if self.rc_balance_sheet_active and schedule_code != "RC":
+                                self.logger.info(f"🔚 RC BALANCE SHEET MODE DEACTIVATED on page {page_num + 1}")
+                                self.logger.info(f"   Reason: New schedule detected: {schedule_code}")
+                                self.logger.info(f"   Processed {len(current_schedule_data)} rows while in RC mode")
+                                self.rc_balance_sheet_active = False
+                                self.rc_balance_sheet_name = ""
+                            
+                            # Save previous schedule if exists
+                            if current_schedule and current_schedule_data:
+                                all_schedules[current_schedule] = {
+                                    'name': f"Schedule {current_schedule}",
+                                    'title': current_schedule_name,
+                                    'data': current_schedule_data
+                                }
+                                self.logger.info(f"  ✓ Saved Schedule {current_schedule} with {len(current_schedule_data)} rows")
+                            
+                            self.logger.info(f"✓ Detected Schedule: {schedule_code} - {schedule_title} on page {page_num + 1}")
+                            
+                            # Debug info
+                            self.logger.debug(f"DEBUG: Schedule transition - From: {current_schedule} To: {schedule_code}")
+                            self.logger.debug(f"DEBUG: RC Balance Sheet active: {self.rc_balance_sheet_active}")
+                            
+                            # Start new schedule
+                            current_schedule = schedule_code
+                            current_schedule_name = schedule_title
+                            current_schedule_data = []
+                            
                     # Extract tables from the page
                     page_tables = page.extract_tables()
+
+                    #DEBUG LINE ADDED 7-7-2025
+                    if self.rc_balance_sheet_active and page_tables:
+                        self.logger.info("=== RAW PDF TABLE DEBUG ===")
+                        for table_idx, table in enumerate(page_tables[:1]):  # Just first table
+                            self.logger.info(f"Table {table_idx} raw structure:")
+                            for row_idx, row in enumerate(table[:5]):  # First 5 rows
+                                self.logger.info(f"  Row {row_idx}: {len(row)} cells")
+                                for cell_idx, cell in enumerate(row):
+                                    if cell:
+                                        self.logger.info(f"    Cell [{cell_idx}]: {repr(cell[:100])}")
 
                     for table_idx, table_data in enumerate(page_tables):
                         if not table_data or len(table_data) < 2:
                             continue
 
-                        # Special handling for RC Balance Sheet
-                        if current_schedule == "RC" and "balance sheet" in current_schedule_name.lower():
-                            # ADD THIS DEBUG LINE
-                            self.logger.debug(f"DEBUG: RC={current_schedule}, Title={current_schedule_name}")
+                        # NEW: Enhanced debugging - show what's in the table
+                        self.logger.debug(f"📊 Table {table_idx} on page {page_num + 1}:")
+                        self.logger.debug(f"   Dimensions: {len(table_data)} rows x {len(table_data[0]) if table_data else 0} cols")
+                        
+                        # NEW: Check for potential collapsed cells BEFORE processing
+                        potential_collapsed = False
+                        for row_idx, row in enumerate(table_data[:20]):  # Check first 20 rows
+                            for cell in row:
+                                if cell and isinstance(cell, str):
+                                    # Look for multiple MDRM codes in one cell
+                                    if len(re.findall(r'(RCFD|RCON|RCFN|RCOA|RCOB|RCOC|RCOD)\d+', str(cell))) > 1:
+                                        potential_collapsed = True
+                                        self.logger.warning(f"🎯 POTENTIAL COLLAPSED CELL on page {page_num + 1}, row {row_idx}: {str(cell)[:100]}...")
+                        
+                        if potential_collapsed:
+                            self.logger.warning(f"⚠️ PAGE {page_num + 1} CONTAINS POTENTIAL COLLAPSED CELLS!")
 
-                            self.logger.info(f"!!! SPECIAL RC PROCESSING ACTIVATED !!!")
-                            self.logger.info(f"!!! Table has {len(table_data)} rows !!!")
+                        # Check if we're in RC Balance Sheet mode
+                        if self.rc_balance_sheet_active:
+                            self.logger.info(f"!!! SPECIAL RC PROCESSING ACTIVATED on PAGE {page_num + 1} !!!")
+                            self.logger.info(f"!!! Current Schedule: {current_schedule} !!!")
                             
-                            # Enhanced row preview - show first 10 rows with column count
-                            for i in range(min(10, len(table_data))):
-                                row = table_data[i]
-                                self.logger.debug(f"!!! Row {i} ({len(row)} cols): {[str(cell)[:50] + '...' if cell and len(str(cell)) > 50 else cell for cell in row]}")
+                            # Try to extract tables with better detection
+                            page_tables = page.extract_tables()
                             
-                            processed_table = self._process_rc_balance_sheet_table(table_data, page_text)
-                        else:
+                            # Check if we got proper 4-column extraction
+                            got_full_table = False
+                            if page_tables:
+                                for table in page_tables:
+                                    if table and len(table) > 0 and len(table[0]) >= 4:
+                                        got_full_table = True
+                                        break
+                            
+                            if not got_full_table:
+                                self.logger.warning(f"⚠️ Standard extraction only got {len(page_tables[0][0]) if page_tables and page_tables[0] else 0} columns, using enhanced method...")
+                                
+                                # Extract words with positioning for enhanced method
+                                words = page.extract_words(
+                                    x_tolerance=3,
+                                    y_tolerance=3,
+                                    keep_blank_chars=True,
+                                    use_text_flow=False,
+                                    horizontal_ltr=True,
+                                    vertical_ttb=True
+                                )
+                                
+                                # Use enhanced extraction
+                                processed_rows = self._extract_rc_balance_sheet_from_words(words, page_num)
+                                
+                                if processed_rows:
+                                    current_schedule_data.extend(processed_rows)
+                                    self.logger.info(f"  ✅ Extracted {len(processed_rows)} rows using enhanced word analysis")
+                                continue
+                            
+                            # If we got a proper 4-column table, process it
+                            for table_idx, table_data in enumerate(page_tables):
+                                if not table_data or len(table_data) < 2:
+                                    continue
+                                
+                                self.logger.debug(f"📊 Table {table_idx} on page {page_num + 1}:")
+                                self.logger.debug(f"   Dimensions: {len(table_data)} rows x {len(table_data[0]) if table_data else 0} cols")
+                                
+                                if len(table_data[0]) >= 4:
+                                    # Process complete 4-column table
+                                    processed_table = self._process_complete_rc_balance_sheet_table(table_data)
+                                    self.logger.info(f"  ✅ Processing with 4-column handler")
+                                else:
+                                    # Fall back to enhanced extraction
+                                    words = page.extract_words()
+                                    processed_table = self._extract_rc_balance_sheet_from_words(words, page_num)
+                                    self.logger.info(f"  ⚠️ Falling back to word extraction due to incomplete columns")
+                                
+                                if processed_table:
+                                    current_schedule_data.extend(processed_table)
+                                    self.logger.info(f"    Added {len(processed_table)} rows to {current_schedule}")
+
+                                #END
+                          
+                        elif current_schedule and current_schedule != "RC":  # We've moved past RC
+                            # Turn off RC Balance Sheet mode when we hit a different schedule
+                            if self.rc_balance_sheet_active:
+                                self.logger.info("📊 Exiting RC Balance Sheet mode")
+                                self.rc_balance_sheet_active = False
+                                self.rc_balance_sheet_name = ""
+                            
                             # Standard processing for other schedules
+                            processed_table = self._process_call_report_table(table_data)
+                        else:
+                            # Standard processing
                             processed_table = self._process_call_report_table(table_data)
 
                         if processed_table:
                             if current_schedule:
                                 current_schedule_data.extend(processed_table)
                                 self.logger.info(f"    Added {len(processed_table)} rows to {current_schedule}")
-            
+
+                               
             # Don't forget the last schedule
             if current_schedule and current_schedule_data:
                 all_schedules[current_schedule] = {
@@ -1163,6 +1302,34 @@ class EnhancedFIREScraper:
                     'data': current_schedule_data
                 }
                 self.logger.info(f"  ✓ Saved final schedule {current_schedule} with {len(current_schedule_data)} rows")
+                # Add PDF processing summary
+                self.logger.info("="*80)
+                self.logger.info("PDF PROCESSING SUMMARY")
+                self.logger.info(f"Total pages processed: {len(pdf.pages)}")
+                self.logger.info(f"Total schedules found: {len(all_schedules)}")
+                self.logger.info(f"Collapsed cells detected: {self.collapsed_cell_count}")
+
+                # List all schedules found
+                self.logger.info("\nSchedules extracted:")
+                for sched_code, sched_data in all_schedules.items():
+                    self.logger.info(f"  - {sched_code}: {sched_data['title']} ({len(sched_data['data'])} rows)")
+
+                # Check if RC Balance Sheet mode is still active (shouldn't be)
+                if self.rc_balance_sheet_active:
+                    self.logger.warning("⚠️ RC Balance Sheet mode still active at end of document!")
+                    self.logger.warning(f"   Last schedule processed: {current_schedule}")
+                else:
+                    self.logger.info("✓ RC Balance Sheet mode properly deactivated")
+
+                # Summary of potential issues
+                if self.collapsed_cell_count == 0:
+                    self.logger.warning("\n⚠️ NO COLLAPSED CELLS DETECTED!")
+                    self.logger.warning("   Expected: Collapsed cells in RC Balance Sheet")
+                    self.logger.warning("   Check the log for 'POTENTIAL COLLAPSED CELL' warnings")
+                else:
+                    self.logger.info(f"\n✓ Successfully detected and processed {self.collapsed_cell_count} collapsed cells")
+
+                self.logger.info("="*80)
 
             # Convert schedules to our table format
             self.tables = []
@@ -1255,7 +1422,120 @@ class EnhancedFIREScraper:
             import traceback
             traceback.print_exc()
             return False
-    
+            #ALIGN end
+        
+   
+    def process_rc_balance_sheet_table(self, df, schedule_name):
+        """Special processing for RC Balance Sheet to handle collapsed cells using DataFrame."""
+        logger = self.logger  # Use the instance logger
+        
+        logger.info(f">>> ENTERING process_rc_balance_sheet_table for {schedule_name}")
+        logger.debug(f"DataFrame shape: {df.shape}")
+        logger.debug(f"DataFrame columns: {df.columns.tolist()}")
+        
+        # Log first few rows to see structure
+        logger.debug("First 3 rows of dataframe:")
+        for idx in range(min(3, len(df))):
+            logger.debug(f"Row {idx}: {df.iloc[idx].tolist()}")
+        
+        # Pattern to detect multiple MDRM codes in a single cell
+        pattern = re.compile(r'(RCFD|RCON|RCFN|RCOA|RCOB|RCOC|RCOD)([A-Z0-9]+)\s+([-]?[\d,]+)')
+        
+        new_rows = []
+        collapsed_cell_count = 0
+        rows_to_remove = []
+        
+        # Check each cell for multiple MDRM codes
+        for row_idx in range(len(df)):
+            row_has_collapsed_cell = False
+            
+            for col_idx in range(len(df.columns)):
+                cell = df.iloc[row_idx, col_idx]
+                
+                # Debug log every cell in first 5 rows
+                if row_idx < 5:
+                    logger.debug(f"Cell at ({row_idx}, {col_idx}): {repr(cell)}")
+                
+                if pd.isna(cell):
+                    continue
+                    
+                # Look for cells with multiple MDRM codes
+                cell_str = str(cell)
+                matches = list(pattern.findall(cell_str))
+                
+                # Debug log for cells that might have codes
+                if any(code in cell_str for code in ['RCFD', 'RCON', 'RCFN']):
+                    logger.debug(f"Potential MDRM cell at ({row_idx}, {col_idx}): {cell_str[:100]}...")
+                    logger.debug(f"Regex matches found: {len(matches)}")
+                
+                if len(matches) > 1:
+                    logger.info(f"🔍 COLLAPSED CELL FOUND at row {row_idx}, col {col_idx}")
+                    logger.info(f"   Original content: {cell_str[:200]}...")
+                    logger.info(f"   Found {len(matches)} MDRM codes")
+                    
+                    collapsed_cell_count += 1
+                    row_has_collapsed_cell = True
+                    
+                    # Extract line item and description from other columns
+                    line_item = ""
+                    description = ""
+                    
+                    # Look for description in cells before the collapsed cell
+                    for desc_idx in range(col_idx):
+                        cell_val = df.iloc[row_idx, desc_idx]
+                        if pd.notna(cell_val) and str(cell_val).strip():
+                            desc_text = str(cell_val).strip()
+                            # Check if this looks like a line item number
+                            if re.match(r'^\d+\.?[a-z]?\.?$', desc_text):
+                                line_item = desc_text
+                            else:
+                                description = desc_text
+                                break
+                    
+                    # Create a new row for each code/amount pair
+                    for i, (prefix, code_num, amount) in enumerate(matches):
+                        mdrm_code = f"{prefix}{code_num}"
+                        logger.debug(f"   Splitting out: {mdrm_code} = {amount}")
+                        
+                        # Create new row data
+                        new_row = df.iloc[row_idx].copy()
+                        
+                        # For RC Balance Sheet, we expect 4 columns:
+                        # [Line Item, Description, MDRM Code, Amount]
+                        if len(df.columns) >= 4:
+                            new_row.iloc[0] = line_item if i == 0 else ""  # Only first split gets line item
+                            new_row.iloc[1] = description if i == 0 else self.rcon_dictionary.lookup_code(mdrm_code)
+                            new_row.iloc[2] = mdrm_code
+                            new_row.iloc[3] = amount
+                        else:
+                            # Fallback for different column structure
+                            new_row.iloc[col_idx] = mdrm_code
+                            if col_idx + 1 < len(df.columns):
+                                new_row.iloc[col_idx + 1] = amount
+                        
+                        new_rows.append(new_row)
+                    
+                    # Mark this row for removal
+                    rows_to_remove.append(row_idx)
+                    break  # Don't check other cells in this row
+        
+        # Remove rows that had collapsed cells
+        if rows_to_remove:
+            df = df.drop(rows_to_remove).reset_index(drop=True)
+        
+        # Add new rows
+        if new_rows:
+            new_df = pd.DataFrame(new_rows)
+            df = pd.concat([df, new_df], ignore_index=True)
+            logger.info(f"✓ Split {collapsed_cell_count} collapsed cells into {len(new_rows)} new rows")
+        
+        self.collapsed_cell_count += collapsed_cell_count
+        
+        logger.info(f"📊 Final DataFrame shape: {df.shape}")
+        logger.info(f"📊 Total collapsed cells found in this table: {collapsed_cell_count}")
+        
+        return df
+
     def _process_rc_balance_sheet_table(self, table_data, page_text):
         """Special processing for RC Balance Sheet tables with 4-column output"""
         processed_rows = []
@@ -1517,6 +1797,167 @@ class EnhancedFIREScraper:
         self.logger.info(f"  Processed {len(processed_rows)} rows from RC Balance Sheet")
         return processed_rows
     
+    #First New Method Added 7-7-2025
+    def _extract_rc_balance_sheet_from_words(self, words, page_num):
+        """Extract RC Balance Sheet data by analyzing word positions"""
+        self.logger.info(f"🔍 Analyzing word positions for RC Balance Sheet on page {page_num + 1}")
+        
+        # Group words by approximate Y position (rows)
+        rows_by_y = {}
+        for word in words:
+            y_pos = round(word['top'], 1)  # Round to nearest 0.1 point
+            if y_pos not in rows_by_y:
+                rows_by_y[y_pos] = []
+            rows_by_y[y_pos].append(word)
+        
+        # Sort rows by Y position
+        sorted_y_positions = sorted(rows_by_y.keys())
+        
+        processed_rows = []
+        
+        for y_pos in sorted_y_positions:
+            row_words = sorted(rows_by_y[y_pos], key=lambda w: w['x0'])
+            
+            # Skip if too few words
+            if len(row_words) < 2:
+                continue
+            
+            # Combine words into text segments based on X position
+            row_text = ' '.join(w['text'] for w in row_words)
+            
+            # Skip header/footer rows
+            if any(skip in row_text for skip in ['Dollar amounts', 'Schedule RC', 'Form Type', 'Last Updated']):
+                continue
+            
+            # Pattern for RC Balance Sheet rows with all 4 components
+            patterns = [
+                # Full pattern with line item, description, code, and amount
+                r'^(\d+\.?[a-z]?\.?)\s+(.+?)\s+(RCFD|RCON|RCFN)([A-Z0-9]+)\s+([-]?[\d,]+)\s*(\d+\.?[a-z]?\.?)?\s*$',
+                # Pattern without trailing line reference
+                r'^(\d+\.?[a-z]?\.?)\s+(.+?)\s+(RCFD|RCON|RCFN)([A-Z0-9]+)\s+([-]?[\d,]+)\s*$',
+                # Pattern for items without line numbers
+                r'^(.+?)\s+(RCFD|RCON|RCFN)([A-Z0-9]+)\s+([-]?[\d,]+)\s*$'
+            ]
+            
+            matched = False
+            for pattern in patterns:
+                match = re.search(pattern, row_text)
+                if match:
+                    if len(match.groups()) >= 5:  # Full pattern
+                        line_item = match.group(1)
+                        description = match.group(2).strip()
+                        code = f"{match.group(3)}{match.group(4)}"
+                        amount = match.group(5)
+                    else:  # Pattern without line number
+                        line_item = ""
+                        description = match.group(1).strip()
+                        code = f"{match.group(2)}{match.group(3)}"
+                        amount = match.group(4)
+                    
+                    # Clean up description
+                    description = re.sub(r'\s*\.+\s*$', '', description)
+                    description = re.sub(r'\s+', ' ', description)
+                    
+                    # Only use MDRM lookup if description is empty
+                    if not description or description in ["", ".", "-"]:
+                        dict_description = self.rcon_dictionary.lookup_code(code)
+                        if dict_description:
+                            description = dict_description
+                            self.logger.debug(f"  ✓ MDRM lookup for {code}: {dict_description}")
+                    
+                    # Clean amount
+                    if amount.startswith('(') and amount.endswith(')'):
+                        amount = '-' + amount[1:-1]
+                    
+                    processed_rows.append({
+                        'line_item': line_item,
+                        'description': description,
+                        'code': code,
+                        'amount': amount,
+                        'is_section_header': False,
+                        'is_total': any(word in description.upper() for word in ['TOTAL', 'SUBTOTAL', 'NET'])
+                    })
+                    
+                    matched = True
+                    break
+            
+            if not matched:
+                # Check if this is a section header (no MDRM code)
+                if not re.search(r'(RCFD|RCON|RCFN)[A-Z0-9]+', row_text) and len(row_text) > 5:
+                    # Extract line item if present
+                    line_item_match = re.match(r'^(\d+\.?[a-z]?\.?)\s+(.+)', row_text)
+                    if line_item_match:
+                        line_item = line_item_match.group(1)
+                        description = line_item_match.group(2)
+                    else:
+                        line_item = ""
+                        description = row_text.strip()
+                    
+                    if description and not description.isdigit():
+                        processed_rows.append({
+                            'line_item': line_item,
+                            'description': description,
+                            'code': '',
+                            'amount': '',
+                            'is_section_header': True,
+                            'is_total': False
+                        })
+        
+        self.logger.info(f"  ✅ Extracted {len(processed_rows)} rows from word analysis")
+        return processed_rows
+    
+    #Additional New Method Added 7-7-2025
+    def _process_complete_rc_balance_sheet_table(self, table_data):
+        """Process RC Balance Sheet table when we have all 4 columns"""
+        processed_rows = []
+        
+        for row_idx, row in enumerate(table_data):
+            if not row or len(row) < 4:
+                continue
+            
+            # Skip header rows
+            skip_row = False
+            for cell in row:
+                if cell and any(skip_text in str(cell) for skip_text in [
+                    'Dollar amounts', 'Schedule RC', 'Form Type', 'Last Updated'
+                ]):
+                    skip_row = True
+                    break
+            
+            if skip_row:
+                continue
+            
+            # Extract 4 columns
+            line_item = str(row[0]).strip() if row[0] else ""
+            description = str(row[1]).strip() if row[1] else ""
+            code = str(row[2]).strip() if row[2] else ""
+            amount = str(row[3]).strip() if row[3] else ""
+            
+            # Validate MDRM code
+            if code and not re.match(r'^(RCFD|RCON|RCFN)[A-Z0-9]+$', code):
+                continue
+            
+            # Use MDRM lookup only if description is empty
+            if code and (not description or description in ["", ".", "-"]):
+                dict_description = self.rcon_dictionary.lookup_code(code)
+                if dict_description:
+                    description = dict_description
+            
+            # Clean amount
+            if amount.startswith('(') and amount.endswith(')'):
+                amount = '-' + amount[1:-1]
+            
+            processed_rows.append({
+                'line_item': line_item,
+                'description': description,
+                'code': code,
+                'amount': amount,
+                'is_section_header': not code,
+                'is_total': any(word in description.upper() for word in ['TOTAL', 'SUBTOTAL', 'NET'])
+            })
+        
+        return processed_rows
+
     def _process_call_report_table(self, table_data):
         """Process a Call Report table with enhanced structure detection"""
         processed_rows = []

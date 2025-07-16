@@ -1,197 +1,182 @@
 # 🔥 FIRE - Financial Institution Regulatory Extractor
 
-A professional-grade Python application for extracting and analyzing financial data from regulatory filings including SEC documents, FFIEC Call Reports, and more.
+A powerful desktop application for extracting and analyzing financial data from FFIEC Call Report bulk data downloads, with advanced single and multi-institution analysis capabilities.
 
-## Overview
+## 🚀 Project Status
 
-FIRE is an advanced Python application that automates the extraction, analysis, and formatting of financial data from regulatory filings. Built for financial institutions, analysts, and compliance professionals, FIRE transforms complex regulatory documents into actionable, structured data.
+**Current Version: 2.0** - Full-Featured Analysis Suite with Complete Single & Multi-Institution Support
 
-##  Why Use FIRE?
+### ✅ Completed Features (All Tested & Working):
+1. **Excel Hyperlinks** - Schedule navigation with back links
+2. **Excel Formatting** - Alternating rows, auto-fit, filters, frozen panes
+3. **Name Search/Filter** - Flexible RSSD/Name input with 4,520+ institution mappings
+4. **Performance Optimization** - Progress tracking and parallel processing
+5. **Error Recovery** - Graceful handling of partial data and missing files
+6. **Multi-Institution Comparison** - Side-by-side analysis of up to 4 institutions
+7. **Executive Dashboard** - Visual charts, key ratios, and asset quality indicators
+8. **Treasury Risk & ALM Metrics** - Interest rate risk, liquidity analysis, and balance sheet composition
+9. **Single Institution Enhancements** - Executive Dashboard and Key Metrics for individual bank analysis
 
-Born from the need to streamline financial research workflows, FIRE was created to solve a common problem: manually downloading and processing regulatory reports is time-consuming and error-prone. Whether you're analyzing a single company or conducting broader market research, FIRE transforms manual work into minutes of automated processing.
+## 📋 Overview
 
-Built by a researcher, for researchers, FIRE delivers:
+FIRE (Financial Institution Regulatory Extractor) processes FFIEC Call Report bulk data downloads and creates sophisticated Excel reports with advanced financial analysis capabilities for both individual institutions and peer comparisons.
 
-- ⚡ **Speed**: Extract data from complex reports in seconds, not hours
-- 🔄 **Consistency**: Standardized output format across all document types
-- 🎯 **Accuracy**: Automated extraction with MDRM dictionary validation
-- 💼 **Professional Output**: Excel files that preserve regulatory formatting
-- 🚀 **Efficiency**: Focus on analysis, not data extraction
+### Core Features:
+- **FFIEC Bulk Data Processing**: Process quarterly Call Report data (47 text files per quarter)
+- **Single Institution Analysis**: Deep-dive analysis with Executive Dashboard and Key Metrics
+- **Multi-Institution Comparison**: Analyze up to 4 institutions side-by-side
+- **Executive Dashboard**: Automated charts and key metrics visualization
+- **ALM Analytics**: Treasury risk metrics including interest rate sensitivity and liquidity indicators
+- **Smart Institution Lookup**: Search by RSSD ID or institution name (4,520+ institutions)
+- **Professional Excel Output**: Formatted reports with hyperlinks, filters, and frozen panes
+- **Resume Capability**: Continue interrupted processing and retry failed files
 
+## 🛠️ Installation
 
-### 🏦 Multi-Source Regulatory Support
+### Prerequisites
+- Python 3.7 or higher (3.9+ recommended)
+- Windows, macOS, or Linux
 
-- - **SEC EDGAR Integration**: Direct API access to SEC filings with automatic company lookup
-- **FFIEC Call Reports**: Complete support for all schedules with MDRM code resolution
-- **Multiple Format Handling**: Seamlessly process HTML, XBRL, PDF, and SDF formats
-- **Smart PDF Processing**: Advanced detection and splitting of collapsed multi-code cells
+### Quick Install
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/fire-analyzer.git
+cd fire-analyzer
 
+# Install dependencies
+pip install -r requirements.txt
 
-### 📊 Intelligent Data Extraction
+# Run the application
+python launcher.py
 
-- **Smart Table Detection**: AI-powered identification of financial tables
-- **Schedule Recognition**: Automatic Call Report schedule identification (RC, RI series)
-- **MDRM Dictionary**: 8,863+ code mappings for instant line item descriptions
-- **Structure Preservation**: Maintains original document hierarchy and formatting
-- **Collapsed Cell Detection**: Automatically splits multi-code PDF cells into individual rows
+Windows Users
+Simply double-click run.bat to launch the application.
+💡 Quick Start
+Single Institution Analysis
 
-### 💎 Professional Output
+Launch FIRE: Run launcher.py or run.bat
+Select Bulk Data Processing Tab
+Choose Processing Mode: Single Institution (default)
+Enter Institution:
 
-- **Excel Excellence**: Multi-sheet workbooks with preserved formatting
-- **4-Column RC Format**: Special handling for RC Balance Sheet (Line Item | Description | MDRM Code | Amount)
-- **Visual Hierarchy**: Automatic indentation, totals detection, and section headers
-- **Flexible Formats**: Export to Excel (formatted/basic), CSV, or JSON
-- **Audit Trail**: Complete metadata tracking and extraction logging
-
-## 🚀 Quick Start
-
-### System Requirements
-
-- Python 3.7 or higher
-- 4GB RAM minimum (8GB recommended)
-- Windows 10/11, macOS 10.14+, or Linux
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/fire-analyzer.git
-   cd fire-analyzer
-Install dependencies
-bashpip install -r requirements.txt
-
-Launch FIRE
-bashpython launcher.py
-Or simply double-click run.bat on Windows.
-
-📖 Usage Guide
-Method 1: Live SEC Filing Analysis
-
-Launch FIRE and navigate to the "Filing Analysis" tab
-Search for a company by ticker, name, or CIK
-Select filing type (10-K, 10-Q, 8-K, etc.)
-Click "Analyze Filing" to process
-
-Method 2: Local File Processing
-
-Select "Local File" option
-Browse to your document (PDF, XBRL, HTML, or SDF)
-Specify document type (Call Report, 10-K, etc.)
-Click "Analyze Filing" to extract data
-
-Export Options
-
-Formatted Excel: Professional workbooks with styling and structure
-Basic Excel: Raw data in simple spreadsheet format
-CSV: Individual files for each table
-JSON: Structured data for programmatic access
-
-🛠️ Technical Architecture
-FIRE/
-├── Core Modules
-│   ├── enhanced_scraper.py     # Extraction engine with MDRM integration
-│   ├── fire_analyzer_gui.py    # Modern GUI interface
-│   └── launcher.py             # Application entry point
-│
-├── Data Resources
-│   └── dictionaries/
-│       ├── call_report_codes.json  # MDRM dictionary (8,863 codes)
-│       └── MDRM_Parser/
-│           └── MDRM_Parser.py      # Federal Reserve MDRM parser
-│
-├── Logs/                       # Extraction logs with detailed debugging
-│
-└── Configuration
-    ├── requirements.txt        # Python dependencies
-    └── run.bat                # Windows quick launcher
-Key Technologies
-
-Frontend: Tkinter with custom dark theme
-Data Processing: Pandas, NumPy for efficient computation
-Document Parsing: BeautifulSoup4, pdfplumber, lxml
-Excel Generation: OpenPyXL with advanced formatting
-API Integration: SEC EDGAR API, FFIEC data services
-Logging: Comprehensive debug logging with extraction statistics
-
-📊 Supported Documents
-SEC Filings
-Filing TypeDescriptionSupport Level10-KAnnual reports✅ Full10-QQuarterly reports✅ Full8-KCurrent reports✅ FullDEF 14AProxy statements✅ Full20-FForeign private issuer annual reports✅ Full
-FFIEC Call Reports
-ScheduleDescriptionFeaturesRC SeriesBalance Sheet schedulesAuto-detection, MDRM lookup, collapsed cell splittingRI SeriesIncome Statement schedulesFull formatting preservationAll PartsIncluding I, II sub-schedulesComplete hierarchy support
-🔧 Advanced Features
-Enhanced RC Balance Sheet Processing
-
-Collapsed Cell Detection: Automatically identifies cells containing multiple MDRM codes
-Smart Splitting: Converts single rows with multiple codes into individual line items
-4-Column Format: Special layout for RC schedules (Line Item | Description | Code | Amount)
-Debug Logging: Detailed extraction logs showing collapsed cell detection and processing
-
-MDRM Dictionary Integration
-
-Automatic code resolution for blank descriptions
-Real-time validation during extraction
-8,863+ regulatory codes mapped
-Fallback handling for unmapped codes
-
-Intelligent Formatting
-
-Automatic indentation detection (4 levels)
-Total/subtotal row identification
-Section header recognition
-Number formatting (thousands separator, no decimals)
-Negative amount handling (parentheses to minus sign conversion)
-
-📈 Recent Updates (v1.1.0)
-New Features
-
-✅ Collapsed Cell Detection: Automatically splits multi-code PDF cells
-✅ Enhanced Debug Logging: Comprehensive extraction statistics
-✅ 4-Column RC Format: Special handling for RC Balance Sheet
-✅ Improved MDRM Integration: Better fallback for missing descriptions
-
-Bug Fixes
-
-Fixed PDF table extraction for complex Call Report layouts
-Improved schedule detection regex patterns
-Enhanced negative number handling
-
-🐛 Debugging & Troubleshooting
-Extraction Logs
-FIRE generates detailed logs for each extraction:
-logs/COMPANY_fire_extraction_YYYYMMDD_HHMMSS.log
-The logs include:
-
-Schedule detection details
-Collapsed cell identification
-MDRM code lookups
-Row-by-row processing information
-Extraction summary statistics
-
-Common Issues
-
-Missing MDRM descriptions
-
-Ensure call_report_codes.json exists in the dictionaries folder
-Check log for "MDRM dictionary loaded" confirmation
+Type RSSD ID (e.g., "37") or
+Type institution name (e.g., "JPMorgan" or "Bank of America")
+Select from dropdown suggestions
 
 
-RC Balance Sheet formatting issues
+Select Data Source: Choose directory with Call Report files
+Process: Click "Process Bulk Data"
+Result: Excel report with:
 
-Enable debug logging to see collapsed cell detection
-Check log for "COLLAPSED CELL FOUND" messages
-Verify 4-column output format in Excel
-
-
-PDF extraction errors
-
-Ensure pdfplumber is installed: pip install pdfplumber
-Some scanned PDFs may not be supported (text extraction required)
+Formatted schedules
+Executive Dashboard with visual analytics
+Key Metrics sheet with financial ratios and ALM metrics
+Report Info with navigation links
 
 
-### Key Updates Made:
 
-1. **Added Collapsed Cell Detection** as a major feature
-2. **Highlighted 4-Column RC Format** for Balance Sheets
-3. **Added Debugging Section** with log file information
-4. **Updated Version** to v1.1.0 with recent improvements
-5. **Enhanced Technical Details** about the extraction process
+Multi-Institution Comparison
+
+Select Multi-Institution Mode: Check "Multi-Institution Comparison"
+Select Primary Institution: Search and select your main institution
+Add 1-3 Peer Institutions: Use the search feature to add peers
+Process: Creates comprehensive comparison report with:
+
+Summary sheet with all institutions
+Side-by-side schedule comparisons
+Executive Dashboard with peer analysis charts
+Key Metrics with comparative ratios
+ALM metrics and treasury risk indicators
+
+
+
+📊 Output Features
+Excel Report Structure
+Both Modes Include:
+
+Report Info: Processing metadata, quick links to enhanced sheets
+Executive Dashboard:
+
+Total assets comparison chart
+Key ratios table (ROA, ROE, NIM, Efficiency)
+Interest rate risk summary
+Liquidity indicators
+Asset quality indicators
+Top 5 balance sheet items
+
+
+Key Metrics:
+
+Profitability metrics
+Efficiency metrics
+Capital adequacy
+Interest rate risk analysis
+Liquidity metrics
+Balance sheet composition
+Asset quality details
+Peer statistics (multi-mode) or benchmarks (single-mode)
+
+
+
+Additional Multi-Institution Features:
+
+Summary Sheet: Institution list with hyperlinks
+Side-by-Side Comparisons: Each schedule showing all institutions
+Peer Analysis: Statistical comparison across institutions
+
+Key Metrics Analyzed
+
+Profitability: ROA, ROE, NIM, Operating Efficiency
+Asset Quality: NPL Ratio, NCO Ratio, ALL/Total Loans
+Capital: Tier 1 Ratio, Leverage Ratio, Risk-Based Capital
+Liquidity: Liquid Assets Ratio, Wholesale Funding, Deposit Stability
+Interest Rate Risk: IR Sensitivity, Asset/Liability Yields, Gap Ratio
+ALM Metrics: Earning Asset Yield, Cost of Funds, Interest Rate Spread
+
+🔧 Technical Details
+Performance Features
+
+Parallel Processing: Multi-core utilization for faster processing
+Memory Optimization: Automatic optimization for large datasets
+Smart File Detection: Automatic schedule identification from filenames
+Progress Tracking: Real-time updates during processing
+Error Recovery: Continue processing even with missing data
+Resume Support: Pick up where you left off if interrupted
+
+Data Dictionary
+
+8,863+ MDRM Codes: Comprehensive coverage of Call Report line items
+4,520+ Institutions: Pre-loaded RSSD to name mappings
+Smart Matching: Fuzzy search for institution names
+Automatic Descriptions: MDRM code descriptions populated automatically
+
+Processing Capabilities
+
+File Size Handling: Optimized for files from 1MB to 500MB+
+Chunked Processing: Large files processed in manageable chunks
+Validation: Automatic data quality checks and warnings
+Flexible Input: Process single files or entire quarters
+
+🗂️ Project Structure
+fire-analyzer/
+├── fire_analyzer_gui.py        # Main GUI application
+├── bulk_data_processor.py      # Processing engine with ExcelEnhancementProcessor
+├── bulk_file_manager.py        # File organization and error recovery
+├── dictionaries/               
+│   ├── institution_lookup.json # 4,520+ RSSD mappings
+│   └── call_report_mdrm_dictionary.json
+├── logs/                       # Processing logs
+├── docs/                       # Documentation
+│   └── bulk_data_download_guide.md
+├── test_config.py              # Test configuration
+├── test_bulk_processing.py     # Test suite
+├── requirements.txt            # Python dependencies
+├── launcher.py                 # Application launcher
+└── run.bat                     # Windows launcher
+
+
+🐛 Known Limitations
+
+Maximum 4 institutions for multi-institution comparison
+Large institutions (>$1T assets) may require extended processing time
+Some MDRM codes may not have descriptions (uses fallback descriptions)
